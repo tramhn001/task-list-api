@@ -2,7 +2,7 @@ from app.models.task import Task
 import pytest
 
 
-@pytest.mark.skip(reason="No way to test this feature yet")
+# @pytest.mark.skip(reason="No way to test this feature yet")
 def test_get_tasks_no_saved_tasks(client):
     # Act
     response = client.get("/tasks")
