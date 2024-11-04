@@ -1,6 +1,7 @@
 from flask import Blueprint, abort, make_response, request, Response
 from ..models.task import Task
 from ..db import db
+from sqlalchemy import asc, desc
 
 tasks_bp = Blueprint("tasks_bp", __name__, url_prefix="/tasks")
 
@@ -35,15 +36,26 @@ def create_task():
 def get_all_tasks():
     query = db.select(Task)
 
-    title_param = request.args.get("title")
-    if title_param:
-        query = query.where(Task.title.ilike(f"%{title_param}%"))
+    sort_column = Task.title    
+    
+    sort_param = request.args.get("sort", "asc").lower()
+    if sort_param not in ["asc", "desc"]:
+        return {"message": "Invalid sort order. Use 'asc' or 'desc"}
+    
+    query = query.order_by(asc(sort_column) if sort_param == "asc" 
+                           else desc(sort_column))
+    
+    tasks = db.session.scalars(query)
 
-    description_param = request.args.get("description")
-    if description_param:
-        query = query.where(Task.description.ilike(f"%{description_param}%"))
+    # title_param = request.args.get("title")
+    # if title_param:
+    #     query = query.where(Task.title.ilike(f"%{title_param}%"))
 
-    tasks = db.session.scalars(query.order_by(Task.id))
+    # description_param = request.args.get("description")
+    # if description_param:
+    #     query = query.where(Task.description.ilike(f"%{description_param}%"))
+
+    # tasks = db.session.scalars(query.order_by(Task.id))
 
     tasks_response = [
             {
