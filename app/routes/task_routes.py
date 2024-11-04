@@ -7,6 +7,10 @@ tasks_bp = Blueprint("tasks_bp", __name__, url_prefix="/tasks")
 @tasks_bp.post("")
 def create_task():
     request_body = request.get_json()
+
+    if not request_body.get("title") or not request_body.get("description"):
+        return {"details": "Invalid data"}, 400
+    
     title = request_body["title"]
     description = request_body["description"]
     completed_at = request_body.get("completed_at")
@@ -17,8 +21,14 @@ def create_task():
     db.session.add(new_task)
     db.session.commit()
 
-    response = new_task.to_dict()
-    response["is_complete"] = is_complete
+    response = {
+        "task": {
+            "id": new_task.id,
+            "title": new_task.title,
+            "description": new_task.description,
+            "is_complete": is_complete
+        }
+    }
     return response, 201
 
 @tasks_bp.get("")
@@ -40,7 +50,6 @@ def get_all_tasks():
                 "id": task.id,
                 "title": task.title,
                 "description": task.description,
-                "completed_at": task.completed_at,
                 "is_complete": task.completed_at is not None
             }
             for task in tasks
@@ -50,11 +59,64 @@ def get_all_tasks():
 
 @tasks_bp.get("/<task_id>")
 def get_one_task(task_id):
-    task = validate_task(task_id)    
+    task = validate_task(task_id)
 
+    return {
+        "task": {
+            "id": task.id,
+            "title": task.title,
+            "description": task.description,
+            "is_complete": task.completed_at is not None
+        }   
+    }    
 
 def validate_task(task_id):
     try: 
         task_id = int(task_id)
     except:
         response = {"message": f"task {task_id} invalid"}
+        abort(make_response(response, 400))
+    
+    query = db.select(Task).where(Task.id == task_id)
+    task = db.session.scalar(query)
+
+    if not task:
+        response = {"message": f"Task {task_id} not found"}
+        abort(make_response(response, 404))
+    
+    return task
+
+@tasks_bp.put("/<task_id>")
+def update_task(task_id):
+    task = validate_task(task_id)
+    request_body = request.get_json()
+
+    task.title = request_body["title"]
+    task.description = request_body["description"]
+    task.completed_at = request_body.get("completed_at")
+    
+    db.session.commit()
+
+    response = {
+        "task": {
+            "id": task.id,
+            "title": task.title,
+            "description": task.description,
+            "is_complete": task.completed_at is not None
+        }
+    }
+
+    return response, 200
+
+@tasks_bp.delete("/<task_id>")
+def delete_task(task_id):
+    task = validate_task(task_id)
+    db.session.delete(task)
+    db.session.commit()
+
+    response = {
+        "details": f'Task {task_id} "{task.title}" successfully deleted'
+    }
+
+    return response
+
