@@ -14,7 +14,21 @@ class Task(db.Model):
             id=self.id,
             title=self.title,
             description=self.description,
-            completed_at=self.completed_at,
             is_complete=self.completed_at is not None
         )
 
+    @classmethod
+    def from_dict(cls, task_data):
+        # Ensure that both title and description are required:
+        if "title" not in task_data or "description" not in task_data:
+            raise KeyError("Title and description are required")
+        
+        new_task = cls(
+            title=task_data["title"],
+            description=task_data["description"],
+            completed_at=task_data.get("completed_at")
+            # is_complete=task_data.completed_at is not None
+        )
+
+        return new_task
+ 
