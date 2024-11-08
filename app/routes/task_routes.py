@@ -21,7 +21,7 @@ def create_task():
     }
 
     return response, status_code
-   
+
 @tasks_bp.get("")
 def get_all_tasks():
     query = db.select(Task)
@@ -45,12 +45,7 @@ def get_all_tasks():
 def get_one_task(task_id):
     task = validate_model(Task, task_id)
 
-    task_dict = {
-        "id": task.id,
-        "title": task.title,
-        "description": task.description,
-        "is_complete": task.completed_at is not None
-    }   
+    task_dict = task.to_dict()
     
     if task.goal_id is not None:
         task_dict["goal_id"] = task.goal_id
@@ -68,7 +63,7 @@ def update_task(task_id):
     
     db.session.commit()
 
-    response = {
+    return {
         "task": {
             "id": task.id,
             "title": task.title,
@@ -76,8 +71,6 @@ def update_task(task_id):
             "is_complete": task.completed_at is not None
         }
     }
-
-    return response, 200
 
 @tasks_bp.delete("/<task_id>")
 def delete_task(task_id):
@@ -104,12 +97,7 @@ def mark_task_completed(task_id):
     send_slack_notification(slack_message)
 
     response = {
-        "task": {
-            "id": task.id,
-            "title": task.title,
-            "description": task.description,
-            "is_complete": task.completed_at is not None
-        }
+        "task": task.to_dict()
     }
 
     return response, 200
@@ -137,12 +125,7 @@ def mark_task_incomplete(task_id):
     db.session.commit()
 
     response = {
-        "task": {
-            "id": task.id,
-            "title": task.title,
-            "description": task.description,
-            "is_complete": False
-        }
+        "task": task.to_dict()
     }
 
     return response, 200

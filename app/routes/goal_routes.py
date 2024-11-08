@@ -34,10 +34,7 @@ def get_one_goal(goal_id):
     goal = validate_model(Goal, goal_id)
 
     return {
-        "goal": {
-            "id": goal.id,
-            "title": goal.title
-        }   
+        "goal": goal.to_dict()
     }    
 
 @goals_bp.put("/<goal_id>")
@@ -49,14 +46,9 @@ def update_goal(goal_id):
    
     db.session.commit()
 
-    response = {
-        "goal": {
-            "id": goal.id,
-            "title": goal.title
-        }
+    return {
+        "goal": goal.to_dict()
     }
-
-    return response, 200
 
 @goals_bp.delete("/<goal_id>")
 def delete_goal(goal_id):
