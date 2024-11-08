@@ -37,16 +37,6 @@ def get_all_tasks():
     
     tasks = db.session.scalars(query)
 
-    # title_param = request.args.get("title")
-    # if title_param:
-    #     query = query.where(Task.title.ilike(f"%{title_param}%"))
-
-    # description_param = request.args.get("description")
-    # if description_param:
-    #     query = query.where(Task.description.ilike(f"%{description_param}%"))
-
-    # tasks = db.session.scalars(query.order_by(Task.id))
-
     tasks_response = [task.to_dict() for task in tasks]
 
     return tasks_response
@@ -55,15 +45,18 @@ def get_all_tasks():
 def get_one_task(task_id):
     task = validate_model(Task, task_id)
 
-    return {
-        "task": {
-            "id": task.id,
-            "title": task.title,
-            "description": task.description,
-            "is_complete": task.completed_at is not None
-        }   
-    }    
+    task_dict = {
+        "id": task.id,
+        "title": task.title,
+        "description": task.description,
+        "is_complete": task.completed_at is not None
+    }   
+    
+    if task.goal_id is not None:
+        task_dict["goal_id"] = task.goal_id
 
+    return {"task": task_dict}
+   
 @tasks_bp.put("/<task_id>")
 def update_task(task_id):
     task = validate_model(Task, task_id)
