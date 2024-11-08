@@ -1,9 +1,10 @@
-from flask import Blueprint, abort, make_response, request, Response
+from flask import Blueprint, abort, make_response, request, Response, current_app
 from ..models.task import Task
 from ..db import db
 from sqlalchemy import asc, desc
 from datetime import datetime
 from .route_utilities import validate_model, create_model
+import requests
 
 tasks_bp = Blueprint("tasks_bp", __name__, url_prefix="/tasks")
 
@@ -88,11 +89,12 @@ def update_task(task_id):
 @tasks_bp.delete("/<task_id>")
 def delete_task(task_id):
     task = validate_model(Task, task_id)
+
     db.session.delete(task)
     db.session.commit()
 
     response = {
-        "details": f'{cls.__name__} {task_id} "{task.title}" successfully deleted'
+        "details": f'Task {task_id} "{task.title}" successfully deleted'
     }
 
     return response
@@ -101,9 +103,12 @@ def delete_task(task_id):
 def mark_task_completed(task_id):
     task = validate_model(Task, task_id)
    
-    task.completed_at = datetime.utcnow()
-   
+    task.completed_at = datetime.now()
+    db.session.add(task)
     db.session.commit()
+
+    slack_message = f"Someone just completed the task {task.title}"
+    send_slack_notification(slack_message)
 
     response = {
         "task": {
@@ -115,6 +120,20 @@ def mark_task_completed(task_id):
     }
 
     return response, 200
+
+def send_slack_notification(message):
+    slack_url = current_app.config["SLACK_WEBHOOK_URL"]
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "text": message,
+        "channel": "task-notifications"
+    }
+
+    try:
+        response = requests.post(slack_url, json=payload, headers=headers)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Slack notification failed: {e}")
 
 @tasks_bp.patch("/<task_id>/mark_incomplete")
 def mark_task_incomplete(task_id):
